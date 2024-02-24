@@ -1,0 +1,271 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>23.2 读写锁 (Read-Write Lock) - MIT6.S081</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">Introduction</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/index.html"><strong aria-hidden="true">1.</strong> Lec01 Introduction and Examples (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.1-ke-cheng-jian-jie.html"><strong aria-hidden="true">1.1.</strong> 1.1 课程内容简介</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.2-cao-zuo-xi-tong-jie-gou.html"><strong aria-hidden="true">1.2.</strong> 1.2 操作系统结构</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.3-why-hard-and-interesting.html"><strong aria-hidden="true">1.3.</strong> 1.3 Why Hard and Interesting</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.4-ke-cheng-zi-yuan.html"><strong aria-hidden="true">1.4.</strong> 1.4 课程结构和资源</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.5-some-systemcalls.html"><strong aria-hidden="true">1.5.</strong> 1.5 read, write, exit系统调用</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.6-open-xi-tong-tiao-yong.html"><strong aria-hidden="true">1.6.</strong> 1.6 open系统调用</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.7-shell.html"><strong aria-hidden="true">1.7.</strong> 1.7 Shell</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.8-fork.html"><strong aria-hidden="true">1.8.</strong> 1.8 fork系统调用</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.9-exec-and-wait-systemcall.html"><strong aria-hidden="true">1.9.</strong> 1.9 exec, wait系统调用</a></li><li class="chapter-item expanded "><a href="../lec01-introduction-and-examples/1.10-io-redirect.html"><strong aria-hidden="true">1.10.</strong> 1.10 I/O Redirect</a></li></ol></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/index.html"><strong aria-hidden="true">2.</strong> Lec03 OS Organization and System Calls (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.1-shang-jie-ke-hui-gu.html"><strong aria-hidden="true">2.1.</strong> 3.1 上一节课回顾</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.2-cao-zuo-xi-tong-ge-li-xing-isolation.html"><strong aria-hidden="true">2.2.</strong> 3.2 操作系统隔离性（isolation）</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.3-cao-zuo-xi-tong-fang-yu-xing-defensive.html"><strong aria-hidden="true">2.3.</strong> 3.3 操作系统防御性（Defensive）</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.4-ying-jian-dui-yu-qiang-ge-li-de-zhi-chi.html"><strong aria-hidden="true">2.4.</strong> 3.4 硬件对于强隔离的支持</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.5-user-kernel-mode-switch.html"><strong aria-hidden="true">2.5.</strong> 3.5 User/Kernel mode切换</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.6-monolithic-kernel-vs-micro-kernel.html"><strong aria-hidden="true">2.6.</strong> 3.6 宏内核 vs 微内核 （Monolithic Kernel vs Micro Kernel）</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.7-bian-yi-yun-xing-kernel.html"><strong aria-hidden="true">2.7.</strong> 3.7 编译运行kernel</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.8-qemu.html"><strong aria-hidden="true">2.8.</strong> 3.8 QEMU</a></li><li class="chapter-item expanded "><a href="../lec03-os-organization-and-system-calls/3.9-xv6-qi-dong-guo-cheng.html"><strong aria-hidden="true">2.9.</strong> 3.9 XV6 启动过程</a></li></ol></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/index.html"><strong aria-hidden="true">3.</strong> Lec04 Page tables (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.1-ke-cheng-nei-rong-jian-jie.html"><strong aria-hidden="true">3.1.</strong> 4.1 课程内容简介</a></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.2-di-zhi-kong-jian-address-spaces.html"><strong aria-hidden="true">3.2.</strong> 4.2 地址空间（Address Spaces）</a></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.3-ye-biao-page-table.html"><strong aria-hidden="true">3.3.</strong> 4.3 页表（Page Table）</a></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.4-ye-biao-huan-cun-translation-lookaside-buffer.html"><strong aria-hidden="true">3.4.</strong> 4.4 页表缓存（Translation Lookaside Buffer）</a></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.5-kernel-page-table.html"><strong aria-hidden="true">3.5.</strong> 4.5 Kernel Page Table</a></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.6-kvminit-han-shu.html"><strong aria-hidden="true">3.6.</strong> 4.6 kvminit 函数</a></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.7-kvminithart.html"><strong aria-hidden="true">3.7.</strong> 4.7 kvminithart 函数</a></li><li class="chapter-item expanded "><a href="../lec04-page-tables-frans/4.8-walk-han-shu.html"><strong aria-hidden="true">3.8.</strong> 4.8 walk 函数</a></li></ol></li><li class="chapter-item expanded "><a href="../lec05-calling-conventions-and-stack-frames-risc-v/index.html"><strong aria-hidden="true">4.</strong> Lec05 Calling conventions and stack frames RISC-V (TA)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec05-calling-conventions-and-stack-frames-risc-v/5.1-introduction-to-lecture05.html"><strong aria-hidden="true">4.1.</strong> 5.1 C程序到汇编程序的转换</a></li><li class="chapter-item expanded "><a href="../lec05-calling-conventions-and-stack-frames-risc-v/5.2-risc-v-vs-x86.html"><strong aria-hidden="true">4.2.</strong> 5.2 RISC-V vs x86</a></li><li class="chapter-item expanded "><a href="../lec05-calling-conventions-and-stack-frames-risc-v/5.3-gdb-he-hui-bian-dai-ma-zhi-hang.html"><strong aria-hidden="true">4.3.</strong> 5.3 gdb和汇编代码执行</a></li><li class="chapter-item expanded "><a href="../lec05-calling-conventions-and-stack-frames-risc-v/5.4-risc-v-ji-cun-qi.html"><strong aria-hidden="true">4.4.</strong> 5.4 RISC-V寄存器</a></li><li class="chapter-item expanded "><a href="../lec05-calling-conventions-and-stack-frames-risc-v/5.5-stack.html"><strong aria-hidden="true">4.5.</strong> 5.5 Stack</a></li><li class="chapter-item expanded "><a href="../lec05-calling-conventions-and-stack-frames-risc-v/5.6-struct.html"><strong aria-hidden="true">4.6.</strong> 5.6 Struct</a></li></ol></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/index.html"><strong aria-hidden="true">5.</strong> Lec06 Isolation & system call entry/exit (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.1-trap.html"><strong aria-hidden="true">5.1.</strong> 6.1 Trap机制</a></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.2-trap-dai-ma-zhi-xing-liu-cheng.html"><strong aria-hidden="true">5.2.</strong> 6.2 Trap代码执行流程</a></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.3-before-ecall.html"><strong aria-hidden="true">5.3.</strong> 6.3 ECALL指令之前的状态</a></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.4-ecall-zhi-ling-zhi-hou-de-zhuang-tai.html"><strong aria-hidden="true">5.4.</strong> 6.4 ECALL指令之后的状态</a></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.5-uservec.html"><strong aria-hidden="true">5.5.</strong> 6.5 uservec函数</a></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.6-usertrap.html"><strong aria-hidden="true">5.6.</strong> 6.6 usertrap函数</a></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.7-usertrapret.html"><strong aria-hidden="true">5.7.</strong> 6.7 usertrapret函数</a></li><li class="chapter-item expanded "><a href="../lec06-isolation-and-system-call-entry-exit-robert/6.8-userret.html"><strong aria-hidden="true">5.8.</strong> 6.8 userret函数</a></li></ol></li><li class="chapter-item expanded "><a href="../lec08-page-faults-frans/index.html"><strong aria-hidden="true">6.</strong> Lec08 Page faults (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec08-page-faults-frans/8.1-page-fault-basics.html"><strong aria-hidden="true">6.1.</strong> 8.1 Page Fault Basics</a></li><li class="chapter-item expanded "><a href="../lec08-page-faults-frans/8.2-lazy-page-allocation.html"><strong aria-hidden="true">6.2.</strong> 8.2 Lazy page allocation</a></li><li class="chapter-item expanded "><a href="../lec08-page-faults-frans/8.3-zero-fill-on-demand.html"><strong aria-hidden="true">6.3.</strong> 8.3 Zero Fill On Demand</a></li><li class="chapter-item expanded "><a href="../lec08-page-faults-frans/8.4-copy-on-write-fork.html"><strong aria-hidden="true">6.4.</strong> 8.4 Copy On Write Fork</a></li><li class="chapter-item expanded "><a href="../lec08-page-faults-frans/8.5-demand-paging.html"><strong aria-hidden="true">6.5.</strong> 8.5 Demand Paging</a></li><li class="chapter-item expanded "><a href="../lec08-page-faults-frans/8.6-memory-mapped-files.html"><strong aria-hidden="true">6.6.</strong> 8.6 Memory Mapped Files</a></li></ol></li><li class="chapter-item expanded "><a href="../lec09-interrupts/index.html"><strong aria-hidden="true">7.</strong> Lec09 Interrupts (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec09-interrupts/9.1-memory-in-real-os.html"><strong aria-hidden="true">7.1.</strong> 9.1 真实操作系统内存使用情况</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.2-interrupt-handware.html"><strong aria-hidden="true">7.2.</strong> 9.2 Interrupt硬件部分</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.3-device-driver.html"><strong aria-hidden="true">7.3.</strong> 9.3 设备驱动概述</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.4-xv6-set-interrupt.html"><strong aria-hidden="true">7.4.</strong> 9.4 在XV6中设置中断</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.5-uart-driver-top.html"><strong aria-hidden="true">7.5.</strong> 9.5 UART驱动的top部分</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.6-uart-driver-bottom.html"><strong aria-hidden="true">7.6.</strong> 9.6 UART驱动的bottom部分</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.7-interrupt-related-concurrency.html"><strong aria-hidden="true">7.7.</strong> 9.7 Interrupt相关的并发</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.8-uart-read-keyboard.html"><strong aria-hidden="true">7.8.</strong> 9.8 UART读取键盘输入</a></li><li class="chapter-item expanded "><a href="../lec09-interrupts/9.9-interrupt-envolving.html"><strong aria-hidden="true">7.9.</strong> 9.9 Interrupt的演进</a></li></ol></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/index.html"><strong aria-hidden="true">8.</strong> Lec10 Multiprocessors and locking (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.1-why-lock.html"><strong aria-hidden="true">8.1.</strong> 10.1 为什么要使用锁？</a></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.2-avoid-race-condition.html"><strong aria-hidden="true">8.2.</strong> 10.2 锁如何避免race condition？</a></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.3-when-use-lock.html"><strong aria-hidden="true">8.3.</strong> 10.3 什么时候使用锁？</a></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.4-locks-properties-and-deadlock.html"><strong aria-hidden="true">8.4.</strong> 10.4 锁的特性和死锁</a></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.5-suo-yu-xing-neng.html"><strong aria-hidden="true">8.5.</strong> 10.5 锁与性能</a></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.6-case-study-uart.html"><strong aria-hidden="true">8.6.</strong> 10.6 XV6中UART模块对于锁的使用</a></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.7-spin-lock-1.html"><strong aria-hidden="true">8.7.</strong> 10.7 自旋锁（Spin lock）的实现（一）</a></li><li class="chapter-item expanded "><a href="../lec10-multiprocessors-and-locking/10.8-spin-lock-2.html"><strong aria-hidden="true">8.8.</strong> 10.8 自旋锁（Spin lock）的实现（二）</a></li></ol></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/index.html"><strong aria-hidden="true">9.</strong> Lec11 Thread switching (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.1-thread.html"><strong aria-hidden="true">9.1.</strong> 11.1 线程（Thread）概述</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.2-xian-cheng-diao-du.html"><strong aria-hidden="true">9.2.</strong> 11.2 XV6线程调度</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.3-xv6-thread-switching-1.html"><strong aria-hidden="true">9.3.</strong> 11.3 XV6线程切换（一）</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.4-xv6-thread-switching-2.html"><strong aria-hidden="true">9.4.</strong> 11.4 XV6线程切换（二）</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.5-xv6-thread-switching-code.html"><strong aria-hidden="true">9.5.</strong> 11.5 XV6进程切换示例程序</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.6-yield-and-sched.html"><strong aria-hidden="true">9.6.</strong> 11.6 XV6线程切换 --- yield/sched函数</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.7-xv6-switch-function.html"><strong aria-hidden="true">9.7.</strong> 11.7 XV6线程切换 --- switch函数</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.8-xv6-scheduler-function.html"><strong aria-hidden="true">9.8.</strong> 11.8 XV6线程切换 --- scheduler函数</a></li><li class="chapter-item expanded "><a href="../lec11-thread-switching-robert/11.9-xv6-call-switch-function-first-time.html"><strong aria-hidden="true">9.9.</strong> 11.9 XV6线程第一次调用switch函数</a></li></ol></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/index.html"><strong aria-hidden="true">10.</strong> Lec13 Sleep & Wake up (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.1-lock-limitation-during-thread-switching.html"><strong aria-hidden="true">10.1.</strong> 13.1 线程切换过程中锁的限制</a></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.2-sleep-wakeup.html"><strong aria-hidden="true">10.2.</strong> 13.2 Sleep&Wakeup 接口</a></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.3-lost-wakeup.html"><strong aria-hidden="true">10.3.</strong> 13.3 Lost wakeup</a></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.4-avoid-lock-wakeup.html"><strong aria-hidden="true">10.4.</strong> 13.4 如何避免Lost wakeup</a></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.5-sleep-and-wakeup-in-pipe.html"><strong aria-hidden="true">10.5.</strong> 13.5 Pipe中的sleep和wakeup</a></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.6-exit-systemcall.html"><strong aria-hidden="true">10.6.</strong> 13.6 exit系统调用</a></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.7-wait-systemcall.html"><strong aria-hidden="true">10.7.</strong> 13.7 wait系统调用</a></li><li class="chapter-item expanded "><a href="../lec13-sleep-and-wakeup-robert/13.8-kill-systemcall.html"><strong aria-hidden="true">10.8.</strong> 13.8 kill系统调用</a></li></ol></li><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/index.html"><strong aria-hidden="true">11.</strong> Lec14 File systems (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/14.1-why-interesting.html"><strong aria-hidden="true">11.1.</strong> 14.1 Why Interesting</a></li><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/14.2-file-system-api.html"><strong aria-hidden="true">11.2.</strong> 14.2 File system实现概述</a></li><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/14.3-how-file-system-uses-disk.html"><strong aria-hidden="true">11.3.</strong> 14.3 How file system uses disk</a></li><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/14.4-inode.html"><strong aria-hidden="true">11.4.</strong> 14.4 inode</a></li><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/14.5-file-system-example.html"><strong aria-hidden="true">11.5.</strong> 14.5 File system工作示例</a></li><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/14.6-xv6-code-inode.html"><strong aria-hidden="true">11.6.</strong> 14.6 XV6创建inode代码展示</a></li><li class="chapter-item expanded "><a href="../lec14-file-systems-frans/14.7-sleep-lock.html"><strong aria-hidden="true">11.7.</strong> 14.7 Sleep Lock</a></li></ol></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/index.html"><strong aria-hidden="true">12.</strong> Lec15 Crash recovery (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.1-file-system-crash-gaishu.html"><strong aria-hidden="true">12.1.</strong> 15.1 File system crash概述</a></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.2-file-system-crash-shi-li.html"><strong aria-hidden="true">12.2.</strong> 15.2 File system crash示例</a></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.3-file-system-logging.html"><strong aria-hidden="true">12.3.</strong> 15.3 File system logging</a></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.4-log-write-han-shu.html"><strong aria-hidden="true">12.4.</strong> 15.4 log_write函数</a></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.5-endop-han-shu.html"><strong aria-hidden="true">12.5.</strong> 15.5 end_op函数</a></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.6-file-system-recovering.html"><strong aria-hidden="true">12.6.</strong> 15.6 File system recovering</a></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.7-log-xie-ci-pan-liu-cheng.html"><strong aria-hidden="true">12.7.</strong> 15.7 Log写磁盘流程</a></li><li class="chapter-item expanded "><a href="../lec15-crash-recovery-frans/15.8-file-system-challenges.html"><strong aria-hidden="true">12.8.</strong> 15.8 File system challenges</a></li></ol></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/index.html"><strong aria-hidden="true">13.</strong> Lec16  File system performance and fast crash recovery (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.1-why-logging.html"><strong aria-hidden="true">13.1.</strong> 16.1 Why logging</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.2-xv6-file-system-logging-hui-gu.html"><strong aria-hidden="true">13.2.</strong> 16.2 XV6 File system logging回顾</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.3-ext3-file-system-log-format.html"><strong aria-hidden="true">13.3.</strong> 16.3 ext3 file system log format</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.4-ext3-ru-he-ti-sheng-xing-neng.html"><strong aria-hidden="true">13.4.</strong> 16.4 ext3如何提升性能</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.5-ext3-wen-jian-xi-tong-diao-yong-ge-shi.html"><strong aria-hidden="true">13.5.</strong> 16.5 ext3文件系统调用格式</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.6-ext3-transaction-commit-bu-zhou.html"><strong aria-hidden="true">13.6.</strong> 16.6 ext3 transaction commit步骤</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.7-file-system-hui-fu-guo-cheng.html"><strong aria-hidden="true">13.7.</strong> 16.7 ext3 file system恢复过程</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.8-transaction-concurrency.html"><strong aria-hidden="true">13.8.</strong> 16.8 为什么新transaction需要等前一个transaction中系统调用执行完成</a></li><li class="chapter-item expanded "><a href="../lec16-file-system-performance-and-fast-crash-recovery-robert/16.9-zong-jie.html"><strong aria-hidden="true">13.9.</strong> 16.9 总结</a></li></ol></li><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/index.html"><strong aria-hidden="true">14.</strong> Lec17 Virtual memory for applications (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/17.1-ying-yong-cheng-xu-shi-yong-xu-ni-nei-cun-suo-xu-yao-de-te-xing.html"><strong aria-hidden="true">14.1.</strong> 17.1 应用程序使用虚拟内存所需要的特性</a></li><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/17.2-zhi-chi-ying-yong-cheng-xu-shi-yong-xu-ni-nei-cun-de-xi-tong-tiao-yong.html"><strong aria-hidden="true">14.2.</strong> 17.2 支持应用程序使用虚拟内存的系统调用</a></li><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/17.3-xu-ni-nei-cun-xi-tong-zhi-chi-yong-hu-cheng-xu.html"><strong aria-hidden="true">14.3.</strong> 17.3 虚拟内存系统如何支持用户应用程序</a></li><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/17.4-build-large-cache.html"><strong aria-hidden="true">14.4.</strong> 17.4 构建大的缓存表</a></li><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/17.5-bakers-garbage-collector.html"><strong aria-hidden="true">14.5.</strong> 17.5 Baker's Real-Time Copying Garbage Collector</a></li><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/17.6-shi-yong-xu-ni-nei-cun-te-xing-de-gc.html"><strong aria-hidden="true">14.6.</strong> 17.6 使用虚拟内存特性的GC</a></li><li class="chapter-item expanded "><a href="../lec17-virtual-memory-for-applications-frans/17.7-shi-yong-xu-ni-nei-cun-te-xing-de-gc-dai-ma-zhan-shi.html"><strong aria-hidden="true">14.7.</strong> 17.7 使用虚拟内存特性的GC代码展示</a></li></ol></li><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/index.html"><strong aria-hidden="true">15.</strong> Lec18 OS organization (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/18.1-monolithic-kernel.html"><strong aria-hidden="true">15.1.</strong> 18.1 Monolithic kernel</a></li><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/18.2-micro-kernel.html"><strong aria-hidden="true">15.2.</strong> 18.2 Micro kernel</a></li><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/18.3-why-micro-kernel.html"><strong aria-hidden="true">15.3.</strong> 18.3 Why micro kernel?</a></li><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/18.4-l4-micro-kernel.html"><strong aria-hidden="true">15.4.</strong> 18.4 L4 micro kernel</a></li><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/18.5-improving-ipc-by-kernel-design.html"><strong aria-hidden="true">15.5.</strong> 18.5 Improving IPC by Kernel Design</a></li><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/18.6-run-linux-on-top-of-l4-micro-kernel.html"><strong aria-hidden="true">15.6.</strong> 18.6 Run Linux on top of L4 micro kernel</a></li><li class="chapter-item expanded "><a href="../lec18-os-organization-robert/18.7-l4-linux-performance.html"><strong aria-hidden="true">15.7.</strong> 18.7 L4 Linux性能分析</a></li></ol></li><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/index.html"><strong aria-hidden="true">16.</strong> Lec19 Virtual Machines (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/19.1-why-virtual-machine.html"><strong aria-hidden="true">16.1.</strong> 19.1 Why Virtual Machine?</a></li><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/19.2-trap-and-emulate-trap.html"><strong aria-hidden="true">16.2.</strong> 19.2 Trap-and-Emulate --- Trap</a></li><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/19.3-trap-and-emulate-emulate.html"><strong aria-hidden="true">16.3.</strong> 19.3 Trap-and-Emulate --- Emulate</a></li><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/19.4-trap-and-emulate-page-table.html"><strong aria-hidden="true">16.4.</strong> 19.4 Trap-and-Emulate --- Page Table</a></li><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/19.5-trap-and-emulate-devices.html"><strong aria-hidden="true">16.5.</strong> 19.5 Trap-and-Emulate --- Devices</a></li><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/19.6-ying-jian-dui-xu-ni-ji-de-zhi-chi.html"><strong aria-hidden="true">16.6.</strong> 19.6 硬件对虚拟机的支持</a></li><li class="chapter-item expanded "><a href="../lec19-virtual-machines-robert/19.7-dune.html"><strong aria-hidden="true">16.7.</strong> 19.7 Dune: Safe User-level Access to Privileged CPU Features</a></li></ol></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/index.html"><strong aria-hidden="true">17.</strong> Lec20 Kernels and HLL (Frans)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.1-c-yu-yan-shi-xian-cao-zuo-xi-tong-de-you-lie-shi.html"><strong aria-hidden="true">17.1.</strong> 20.1 C语言实现操作系统的优劣势</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.2-gao-ji-bian-cheng-yu-yan-shi-xian-cao-zuo-xi-tong-de-you-lie-shi.html"><strong aria-hidden="true">17.2.</strong> 20.2 高级编程语言实现操作系统的优劣势</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.3-choose-golang.html"><strong aria-hidden="true">17.3.</strong> 20.3 高级编程语言选择 --- Golang</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.4-biscuit.html"><strong aria-hidden="true">17.4.</strong> 20.4 Biscuit</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.5-heap-exhaustion.html"><strong aria-hidden="true">17.5.</strong> 20.5 Heap exhaustion</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.6-heap-exhaustion-solution.html"><strong aria-hidden="true">17.6.</strong> 20.6 Heap exhaustion solution</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.7-evaluation-hll-benefits.html"><strong aria-hidden="true">17.7.</strong> 20.7 Evaluation: HLL benefits</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.8-evaluation-hll-performance-cost-1.html"><strong aria-hidden="true">17.8.</strong> 20.8 Evaluation: HLL performance cost(1)</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.9-evaluation-hll-performance-cost-2.html"><strong aria-hidden="true">17.9.</strong> 20.9 Evaluation: HLL performance cost(2)</a></li><li class="chapter-item expanded "><a href="../lec20-kernels-and-hll-frans/20.10-should-one-use-hll-for-a-new-kernel.html"><strong aria-hidden="true">17.10.</strong> 20.10 Should one use HLL for a new kernel?</a></li></ol></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/index.html"><strong aria-hidden="true">18.</strong> Lec21 Networking (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.1-ji-suan-ji-wang-luo-gai-shu.html"><strong aria-hidden="true">18.1.</strong> 21.1计算机网络概述</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.2-er-ceng-wang-luo-ethernet.html"><strong aria-hidden="true">18.2.</strong> 21.2 二层网络 --- Ethernet</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.3-er-san-ceng-di-zhi-zhuan-huan-arp.html"><strong aria-hidden="true">18.3.</strong> 21.3 二/三层地址转换 --- ARP</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.4-san-ceng-wang-luo-internet.html"><strong aria-hidden="true">18.4.</strong> 21.4 三层网络 --- Internet</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.5-si-ceng-wang-luo-udp.html"><strong aria-hidden="true">18.5.</strong> 21.5 四层网络 --- UDP</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.6-wang-lu-xie-yi-zhan-network-stack.html"><strong aria-hidden="true">18.6.</strong> 21.6 网络协议栈（Network Stack）</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.7-ring-buffer.html"><strong aria-hidden="true">18.7.</strong> 21.7 Ring Buffer</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.8-receive-livelock.html"><strong aria-hidden="true">18.8.</strong> 21.8 Receive Livelock</a></li><li class="chapter-item expanded "><a href="../lec21-networking-robert/21.9-ru-he-jie-jue-livelock.html"><strong aria-hidden="true">18.9.</strong> 21.9 如何解决Livelock</a></li></ol></li><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/index.html"><strong aria-hidden="true">19.</strong> Lec22 Meltdown (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/22.1-meltdown-fa-sheng-de-bei-jing.html"><strong aria-hidden="true">19.1.</strong> 22.1 Meltdown发生的背景</a></li><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/22.2-speculative-execution-1.html"><strong aria-hidden="true">19.2.</strong> 22.2 Speculative execution(1)</a></li><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/22.3-speculative-execution-2.html"><strong aria-hidden="true">19.3.</strong> 22.3 Speculative execution(2)</a></li><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/22.4-cpu-caches.html"><strong aria-hidden="true">19.4.</strong> 22.4 CPU caches</a></li><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/22.5-flush-and-reload.html"><strong aria-hidden="true">19.5.</strong> 22.5 Flush and Reload</a></li><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/22.6-meltdown-attack.html"><strong aria-hidden="true">19.6.</strong> 22.6 Meltdown Attack</a></li><li class="chapter-item expanded "><a href="../lec22-meltdown-robert/22.7-meltdown-fix.html"><strong aria-hidden="true">19.7.</strong> 22.7 Meltdown Fix</a></li></ol></li><li class="chapter-item expanded "><a href="../lec23-rcu-robert/index.html"><strong aria-hidden="true">20.</strong> Lec23 RCU (Robert)</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../lec23-rcu-robert/23.1-shi-yong-suo-dai-lai-de-wen-ti.html"><strong aria-hidden="true">20.1.</strong> 23.1 使用锁带来的问题</a></li><li class="chapter-item expanded "><a href="../lec23-rcu-robert/23.2-du-xie-suo-readwrite-lock.html" class="active"><strong aria-hidden="true">20.2.</strong> 23.2 读写锁 (Read-Write Lock)</a></li><li class="chapter-item expanded "><a href="../lec23-rcu-robert/23.3-rcu-shi-xian-1-ji-ben-shi-xian.html"><strong aria-hidden="true">20.3.</strong> 23.3 RCU实现(1) - 基本实现</a></li><li class="chapter-item expanded "><a href="../lec23-rcu-robert/23.4-rcu-shi-xian-2-memory-barrier.html"><strong aria-hidden="true">20.4.</strong> 23.4 RCU实现(2) - Memory barrier</a></li><li class="chapter-item expanded "><a href="../lec23-rcu-robert/23.5-rcu-shi-xian-3-du-xie-xian-zhi.html"><strong aria-hidden="true">20.5.</strong> 23.5 RCU实现(3) - 读写规则</a></li><li class="chapter-item expanded "><a href="../lec23-rcu-robert/23.6-rcu-yong-li-dai-ma.html"><strong aria-hidden="true">20.6.</strong> 23.6 RCU用例代码</a></li><li class="chapter-item expanded "><a href="../lec23-rcu-robert/23.7-rcu-zong-jie.html"><strong aria-hidden="true">20.7.</strong> 23.7 RCU总结</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">MIT6.S081</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="232-读写锁-read-write-lock"><a class="header" href="#232-读写锁-read-write-lock">23.2 读写锁 (Read-Write Lock)</a></h1>
+<p>这种锁被称为读写锁（Read-Write Lock），它的接口相比spinlock略显复杂。如果只是想要读取数据，那么可以调用r_lock，将锁作为参数传入，同样的还会有个r_unlock，数据的读取者使用这些接口。数据的写入者调用w_lock和w_unlock接口。</p>
+<p><img src="../.gitbook/assets/image%20%28676%29.png" alt="" /></p>
+<p>这里的语义是，要么你可以有多个数据的读取者获取了读锁，这样可以获得并行执行读操作的能力；要么你只能有一个数据写入者获取了写锁。但是不能两种情况同时发生，读写锁排除了某人获取了数据的写锁，同时又有别人获取读锁的可能性。你要么只有一个数据写入者，要么有多个数据读取者，不可能有别的可能。</p>
+<blockquote>
+<p>学生提问：当某人持有了读锁时，读写锁是采用什么方案来阻止其他人写入数据的？</p>
+<p>Robert教授：并没有什么方案，这就像XV6的锁一样。我们这里讨论的是由值得信赖且负责的开发人员编写的内核代码，所以就像XV6的spinlock一样，如果使用锁的代码是不正确的，那么结果就是不正确的，这是内核代码典型的编写方式，你只能假设开发内核的人员遵循这里的规则。</p>
+</blockquote>
+<p>如果我们有一个大部分都是读取操作的数据结构，我们会希望能有多个用户能同时使用这个数据结构，这样我们就可以通过多核CPU获得真正的性能提升。如果没有其他问题的话，那么读写锁就可以解决今天的问题，我们也没有必要读<a href="https://pdos.csail.mit.edu/6.828/2020/readings/rcu-decade-later.pdf">RCU这篇论文</a>。但实际上如果你深入细节，你会发现当你使用读写锁时，尤其对于大部分都是读取操作的数据结构，会有一些问题。为了了解实际发生了什么，我们必须看一下读写锁的代码实现。</p>
+<p><img src="../.gitbook/assets/image%20%28668%29.png" alt="" /></p>
+<p>Linux实际上有读写锁的实现，上面是一种简化了的Linux代码。首先有一个结构体是rwlock，这与XV6中的lock结构体类似。rwlock结构体里面有一个计数器n，</p>
+<ul>
+<li>如果n等于0那表示锁没有以任何形式被被任何人持有</li>
+<li>如果n等于-1那表示当前有一个数据写入者持有写锁</li>
+<li>如果n大于0表示有n个数据读取者持有读锁。我们需要记录这里的数字，因为我们只有在n减为0的时候才能让数据写入者持有写锁。</li>
+</ul>
+<p>r_lock函数会一直在一个循环里面等待数据写入者释放锁。首先它获取读写锁中计数器n的拷贝，如果n的拷贝小于0的话那意味着存在一个数据写入者，我们只能继续循环以等待数据写入者退出。如果n的拷贝不小于0，我们会增加读写锁的计数器。但是我们只能在读写锁的计数器仍然大于等于0的时候，对其加1。所以我们不能直接对n加1，因为如果一个数据写入者在我们检查n和我们增加n之间潜入了，那么我们有可能在数据写入者将n设置为-1的同时，将n又加了1。所以我们只能在检查完n大于等于0，且n没有改变的前提下，将其加1。</p>
+<p>人们通过利用特殊的原子指令来实现这一点，我们之前在看XV6中spinlock的实现时看过类似的指令（注，详见10.7中的test_and_set指令）。其中一个使用起来很方便的指令是compare-and-swap（CAS）。CAS接收三个参数，第一个参数是内存的某个地址，第二个参数是我们认为内存中该地址持有的数值，第三个参数是我们想设置到内存地址的数值。CAS的语义是，硬件首先会设置一个内部的锁，使得一个CAS指令针对一个内存地址原子的执行；之后硬件会检查当前内存地址的数值是否还是x；如果是的话，将其设置为第三个参数，也就是x+1，之后CAS指令会返回1；如果不是的话，并不会改变内存地址的数值，并返回0。这里必须是原子性，因为这里包含了两个操作，首先是检查当前值，其次是设置一个新的数值。</p>
+<blockquote>
+<p>13:50 - 16:45是个不太清晰的提问，没什么价值故略过</p>
+<p>学生提问：有没有可能计算x的过程中，发生了一个中断？</p>
+<p>Robert教授：你是指我们在执行CAS指令之前计算它的第三个参数的过程中发生中断吗？CAS实际上是一个指令，如果中断发生在我们计算x+1的过程中，那么意味着我们还没有调用CAS，这时包括中断在内的各种事情都可能发生。如果我们在最初读取n的时候读到0，那么不管发不发生中断，我们都会将1作为CAS的第三个参数传入，因为中断并不会更改作为本地变量的x，所以CAS的第二个和第三个参数会是0和1。如果n还是0，我们会将其设置为1，这是我们想看到的；如果n不是0，那么CAS并不会更新n。</p>
+<p>如果这里没有使用本地变量x，那么就会有大问题了，因为n可能在任意时间被修改，所以我们需要在最开始在本地变量x中存储n的一个固定的值。</p>
+</blockquote>
+<p>上面介绍了w_lock与r_lock同时调用的场景。多个r_lock同时调用的场景同样也很有趣。假设n从0开始，当两个r_lock同时调用时，我们希望当两个r_lock都返回时，n变成2，因为我们希望两个数据读取者可以并行的使用数据。两个r_lock在最开始都将看到n为0，并且都会通过传入第二个参数0，第三个参数1来调用CAS指令，但是只有一个CAS指令能成功。CAS是一个原子操作，一次只能发生一个CAS指令。不管哪个CAS指令先执行，将会看到n等于0，并将其设置为1。另一个CAS指令将会看到n等于1，返回失败，并回到循环的最开始，这一次x可以读到1，并且接下来执行CAS的时候，第二个参数将会是1，第三个参数是2，这一次CAS指令可以执行成功。最终两次r_lock都能成功获取锁，其中一次r_lock在第一次尝试就能成功，另一次r_lock会回到循环的最开始再次尝试并成功。</p>
+<blockquote>
+<p>学生提问：如果开始有一堆数据读取者在读，之后来了一个数据写入者，但是又有源源不断的数据读取者加入进来，是不是就轮不到数据写入者了？</p>
+<p>Robert教授：如果多个数据读取者获取了锁，每一个都会通过CAS指令将n加1，现在n会大于0。如果这时一个数据写入者尝试要获取锁，它的CAS指令会将n与0做对比，只有当n等于0时，才会将其设置为-1。但是因为存在多个数据读取者，n不等于0，所以CAS指令会失败。数据写入者会在w_lock的循环中不断尝试并等待n等于0，如果存在大量的数据读取者，这意味着数据写入者有可能会一直等待。这是这种锁机制的一个缺陷。</p>
+</blockquote>
+<blockquote>
+<p>学生提问：在刚刚两个数据读取者要获取锁的过程中，第二个数据读取者需要再经历一次循环，这看起来有点浪费，如果有多个数据读取者，那么它们都需要重试。</p>
+<p>Robert教授：你说到了人们为什么不喜欢这种锁的点子上了。即使没有任何的数据写入者，仅仅是在多个CPU核上有大量的数据读取者，r_lock也可能会有非常高的代价。在一个多核的系统中，每个CPU核都有一个关联的cache，也就是L1 cache。每当CPU核读写数据时，都会保存在cache中。除此之外，还有一些内部连接的线路使得CPU可以彼此交互，因为如果某个CPU核修改了某个数据，它需要告诉其他CPU核不要去缓存这个数据，这个过程被称为(cache) invalidation。</p>
+</blockquote>
+<p><img src="../.gitbook/assets/image%20%28692%29.png" alt="" /></p>
+<blockquote>
+<p>如果有多个数据读取者在多个CPU上同时调用r_lock，它们都会读取读写锁的计数l-&gt;n，并将这个数据加载到CPU的cache中，它们也都会调用CAS指令，但是第一个调用CAS指令的CPU会修改l-&gt;n的内容。作为修改的一部分，它需要使得其他CPU上的cache失效。所以执行第一个CAS指令的CPU需要通过线路发送invalidate消息给其他每一个CPU核，之后其他的CPU核在执行CAS指令时，需要重新读取l-&gt;n，但是这时CAS指令会失败，因为l-&gt;n已经等于1了，但x还是等于0。之后剩下的所有数据读取者都会回到循环的最开始，重复上面的流程，但这一次还是只有一个数据读取者能成功。</p>
+<p>假设有n个数据读取者，那么每个r_lock平均需要循环n/2次，每次循环都涉及到O(n)级别的CPU消息，因为至少每次循环中所有CPU对于l-&gt;n的cache需要被设置为无效。这意味着，对于n个CPU核来说，同时获取一个锁的成本是O(n^2)，当你为一份数据增加CPU核时，成本以平方增加。</p>
+<p>这是一个非常糟糕的结果，因为你会期望如果有10个CPU核完成一件事情，你将获得10倍的性能，尤其现在还只是读数据并没有修改数据。你期望它们能真正的并行运行，当有多个CPU核时，每个CPU核读取数据的时间应该与只有一个CPU核时读取数据的时间一致，这样并行运行才有意义，因为这样你才能同时做多件事情。但是现在，越多的CPU核尝试读取数据，每个CPU核获取锁的成本就越高。</p>
+<p>对于一个只读数据，如果数据只在CPU的cache中的话，它的访问成本可能只要几十个CPU cycle。但是如果数据很受欢迎，由于O(n^2)的效果，光是获取锁就要消耗数百甚至数千个CPU cycle，因为不同CPU修改数据（注，也就是读写锁的计数器）需要通过CPU之间的连线来完成缓存一致的操作。</p>
+<p>所以这里的读写锁，将一个原本成本很低的读操作，因为要修改读写锁的l-&gt;n，变成了一个成本极高的操作。如果你要读取的数据本身就很简单，这里的锁可能会完全摧毁任何并行带来的可能的性能提升。</p>
+</blockquote>
+<p>读写锁糟糕的性能是RCU存在的原因，因为如果读写锁足够有效，那么就没有必要做的更好。除了在有n个CPU核时，r_lock的成本是O(n^2)之外，这里的读写锁将一个本来可以缓存在CPU中的，并且可能会很快的只读的操作，变成了需要修改锁的计数器l-&gt;n的操作。如果我们写的是可能与其他CPU核共享的数据，写操作通常会比读操作成本高得多。因为读一个未被修改的数据可以在几个CPU cycle内就从CPU cache中读到，但是修改可能被其他CPU核缓存的数据时，需要涉及CPU核之间的通信来使得缓存失效。不论如何修改数据结构，任何涉及到更改共享数据的操作对于性能来说都是灾难。</p>
+<p><img src="../.gitbook/assets/image%20%28701%29.png" alt="" /></p>
+<p>所以r_lock中最关键的就是它对共享数据做了一次写操作。所以我们期望找到一种方式能够在读数据的同时，又不需要写数据，哪怕是写锁的计数器也不行。这样读数据实际上才是一个真正的只读操作。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../lec23-rcu-robert/23.1-shi-yong-suo-dai-lai-de-wen-ti.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../lec23-rcu-robert/23.3-rcu-shi-xian-1-ji-ben-shi-xian.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../lec23-rcu-robert/23.1-shi-yong-suo-dai-lai-de-wen-ti.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../lec23-rcu-robert/23.3-rcu-shi-xian-1-ji-ben-shi-xian.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
